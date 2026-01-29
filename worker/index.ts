@@ -1,7 +1,36 @@
 
+const TOKEN_KEYS = ['download_token', 'token'];
+
+async function getExpectedToken(env: Env): Promise<string | null> {
+    for (const key of TOKEN_KEYS) {
+        const token = await env.KV.get(key);
+        if (token) return token;
+    }
+    return null;
+}
+
+function getProvidedToken(request: Request, url: URL): string | null {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) {
+        const [scheme, value] = authHeader.split(' ');
+        if (value && /^bearer$/i.test(scheme)) {
+            return value.trim();
+        }
+        return authHeader.trim();
+    }
+
+    const headerToken = request.headers.get('x-token');
+    if (headerToken) return headerToken.trim();
+
+    const queryToken = url.searchParams.get('token');
+    if (queryToken) return queryToken;
+
+    return null;
+}
+
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		const url = new URL(request.url);
+    async fetch(request, env, ctx): Promise<Response> {
+        const url = new URL(request.url);
 
 		// API Route: List files
 		// Format: /api/list?prefix=folder/
@@ -39,9 +68,19 @@ export default {
 			const rawKey = url.pathname.slice('/api/file/'.length);
 			const key = decodeURIComponent(rawKey);
 
+			const providedToken = getProvidedToken(request, url);
+			const expectedToken = await getExpectedToken(env);
+
+			if (!expectedToken) {
+					return new Response('Token not configured', { status: 500 });
+			}
+
+			if (!providedToken || providedToken !== expectedToken) {
+					return new Response('Unauthorized', { status: 401 });
+			}
 
 			if (!key) {
-				return new Response('Missing key', { status: 404 });
+					return new Response('Missing key', { status: 404 });
 			}
 
 			const object = await env.AssetsStore.get(key);

@@ -25,6 +25,25 @@ function App() {
     const [items, setItems] = useState<R2Listing>({ objects: [], delimitedPrefixes: [] });
     const [loading, setLoading] = useState(false);
 
+    const ensureToken = async (): Promise<string | null> => {
+        let token = localStorage.getItem('auth_token');
+        if (!token) {
+            token = window.prompt('请输入 auth_token')?.trim() || '';
+            if (token) {
+                localStorage.setItem('auth_token', token);
+            }
+        }
+        return token || null;
+    };
+
+    const handleDownload = async (key: string, event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        event.preventDefault();
+        const token = await ensureToken();
+        if (!token) return;
+        const downloadUrl = `/api/file/${encodeURIComponent(key)}?token=${encodeURIComponent(token)}`;
+        window.location.href = downloadUrl;
+    };
+
     useEffect(() => {
         setLoading(true);
         fetch(`/api/list?prefix=${currentPath}`)
@@ -131,6 +150,7 @@ function App() {
                                             color: '#333',
                                             transition: 'background 0.2s'
                                         }}
+                                        onClick={(e) => handleDownload(obj.key, e)}
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                                     >

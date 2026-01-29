@@ -35,6 +35,13 @@
 			"preview_bucket_name": "grocery-dev"
 		}
 	],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "eb911e44c74746d1bc8e7aab2fdd2477",
+      "preview_id": "grocery"
+    }
+  ],
 	"routes": [
 		{
 			"pattern": "grocery.kkdashu.fun",

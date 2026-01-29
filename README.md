@@ -6,6 +6,7 @@ A simple, modern file browser for Cloudflare R2 buckets, built with React, Vite,
 
 -   **Browse Files**: Navigate through folders and files in your R2 bucket.
 -   **Direct Download**: Click files to download them directly (using `Content-Disposition`).
+-   **Token-Protected Downloads**: File downloads require a token stored in KV to prevent public access.
 -   **Modern UI**: Clean interface with formatted file sizes and icons.
 -   **SPA Architecture**: Fast React-based frontend served via Cloudflare Assets.
 
@@ -35,6 +36,13 @@ A simple, modern file browser for Cloudflare R2 buckets, built with React, Vite,
     ]
     ```
 
+3.  **Configure KV token** (one-time): put a secret token into your KV namespace bound as `KV`.
+    - Recommended key: `download_token` (fallback key: `token`).
+    - Example (use your namespace):
+      ```bash
+      wrangler kv key put --namespace-id <YOUR_NS_ID> download_token <YOUR_SECRET_TOKEN>
+      ```
+
 ## Development
 
 ### Local Development (Mocked Data)
@@ -50,6 +58,14 @@ To verify against your real remote R2 bucket:
 pnpm preview
 ```
 *Note: Requires `preview_bucket_name` to be set if you want to test with a specific dev bucket, or it will use your production bucket if authenticated.*
+
+## Authentication & Downloads
+
+- The Worker checks the token from one of: `Authorization: Bearer <token>`, `Authorization: <token>`, header `x-token`, or query `?token=...`.
+- The frontend now assists users:
+  - On first click to download, if `auth_token` is not in `localStorage`, the browser prompts for it and saves it locally.
+  - All subsequent downloads automatically append `?token=<auth_token>` so the request passes server validation.
+- To rotate the token, update the KV value and clear the browser's `localStorage` entry `auth_token`.
 
 ## Deployment
 
